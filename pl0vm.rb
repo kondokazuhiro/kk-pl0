@@ -14,7 +14,7 @@ class PL0VM
   def initialize
     @debug = false
     @output = $stdout
-    @stack = Array.new(STACK_SIZE)
+    @stack = Array.new(STACK_SIZE, 0)
     @display = Array.new
     @top = 0
     @pc = 0
@@ -50,6 +50,8 @@ class PL0VM
     case inst.code
     when LOD
       do_LOD(inst)
+    when LDA
+      do_LDA(inst)
     when STO
       do_STO(inst)
     when LIT
@@ -75,6 +77,10 @@ class PL0VM
     push(@stack[@display[inst.addr.level] + inst.addr.offset])
   end
   
+  def do_LDA(inst)
+    push(@display[inst.addr.level] + inst.addr.offset)
+  end
+
   def do_STO(inst)
     @stack[@display[inst.addr.level] + inst.addr.offset] = pop()
   end
@@ -159,6 +165,11 @@ class PL0VM
       @output.print(pop(), ' ')
     when WRL
       @output.print("\n")
+    when LID
+      operate_unary {|a| @stack[a]}
+    when SID
+      @stack[@stack[@top - 2]] = @stack[@top - 1]
+      @top -= 2
     else
       raise PL0Error.new("Unknown operation type: #{inst.op_type}")
     end

@@ -233,6 +233,95 @@ class TesPL0C < Test::Unit::TestCase
     end
   end
   
+  def test_array_01
+    src = <<-EOS
+      const size = 10;
+      var i, a[size], n;
+      begin
+        i := 1;
+        while i <= size do
+        begin
+          a[i - 1] := i * 10 / 2;
+          a[i - 1] := a[i - 1] * 2;
+          i := i + 1;
+        end;
+        n := 0;
+        while n < size do
+        begin
+          write a[n + (n - n)];
+          n := n + 1;
+        end;
+      end.
+    EOS
+    assert_equal('10 20 30 40 50 60 70 80 90 100 ', vm_run(compile(src)))
+  end
+  
+  def test_array_ref
+    src = <<-EOS
+      function f(ap[], len)
+        var i;
+        begin
+          i := 0;
+          while i < len do
+          begin
+            ap[i] := i;
+            i := i + 1;
+          end;
+        end;
+      const size = 5;
+      var a[size], i, dummy;
+      begin
+        dummy := f(a, size);
+        i := 0;
+        while i < size do
+        begin
+          write a[i];
+          i := i + 1;
+        end;
+      end.
+    EOS
+    assert_equal('0 1 2 3 4 ', vm_run(compile(src)))
+  end
+
+  def test_compile_invalid_array_assign1
+    begin
+      compile("var a; begin a[0] := 1 end.")
+      flunk
+    rescue CompileError => e
+      assert_equal('test(1): Symbol a is not an array.', e.to_s)
+    end
+  end
+
+  def test_compile_invalid_array_assign2
+    begin
+      compile("var a[1]; begin a := 1 end.")
+      flunk
+    rescue CompileError => e
+      assert_equal('test(1): Symbol a is an array.', e.to_s)
+    end
+    begin
+      compile("function f(r[]) begin r := 1 end; var a[1]; begin f(a) end.")
+      flunk
+    rescue CompileError => e
+      assert_equal('test(1): Symbol r is an array.', e.to_s)
+    end
+  end
+
+  def test_compile_invalid_array_ref
+    begin
+      compile("var v, a[1]; begin v := a end.")
+      flunk
+    rescue CompileError => e
+      assert_equal('test(1): Reference of array a is not allowed here.', e.to_s)
+    end
+    begin
+      compile("function f(r[]) return r; var a[1]; begin f(a) end.")
+      flunk
+    rescue CompileError => e
+      assert_equal('test(1): Reference of array r is not allowed here.', e.to_s)
+    end
+  end
+  
   def test_example_ex1
     assert_equal("7 85 \n595 \n", vm_run(compile(SRC_ex1)))
   end

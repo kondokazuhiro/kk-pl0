@@ -10,6 +10,7 @@ module PL0Common
     ICT = 7
     JMP = 8
     JPC = 9
+    LDA = 10
     
     INSTRUCTION_CODE_TO_S = {
       LIT => 'lit',
@@ -21,6 +22,7 @@ module PL0Common
       ICT => 'ict',
       JMP => 'jmp',
       JPC => 'jpc',
+      LDA => 'lda',
     }
     S_TO_INSTRUCTION_CODE = INSTRUCTION_CODE_TO_S.invert
 
@@ -50,6 +52,8 @@ module PL0Common
     GREQ = 12
     WRT  = 13
     WRL  = 14
+    LID = 15
+    SID = 16
     
     OPERATION_TYPE_TO_S = {
       NEG => 'neg',
@@ -66,6 +70,8 @@ module PL0Common
       GREQ => 'greq',
       WRT  => 'wrt',
       WRL  => 'wrl',
+      LID => 'lid',
+      SID => 'sid',
     }
     S_TO_OPERATION_TYPE = OPERATION_TYPE_TO_S.invert
 
@@ -165,7 +171,7 @@ module PL0Common
       case code
       when LIT, ICT, JMP, JPC
         return ValueInstruction.new(code, arg)
-      when LOD, STO, CAL, RET
+      when LOD, LDA, STO, CAL, RET
         return AddrInstruction.new(code, arg)
       when OPR
         return OperationInstruction.new(arg)
@@ -220,7 +226,7 @@ module PL0Common
       case code
       when LIT, ICT, JMP, JPC
         @factory.create(code, (code == LIT) ? read_int : read_short)
-      when LOD, STO, CAL, RET
+      when LOD, LDA, STO, CAL, RET
         @factory.create(code, Address.new(read_short, read_short))
       when OPR
         @factory.create(code, read_byte)
@@ -238,7 +244,7 @@ module PL0Common
         else
           write_short(inst.value)
         end
-      when LOD, STO, CAL, RET
+      when LOD, LDA, STO, CAL, RET
         write_short(inst.addr.level)
         write_short(inst.addr.offset)
       when OPR
@@ -254,17 +260,13 @@ module PL0Common
     end
 
     def read_short
-      b0 = read_byte
-      b1 = read_byte
-      (b0 << 8) | b1
+      n = @port.read(2)
+      n ? n.unpack('s')[0] : nil
     end
 
     def read_int
-      b0 = read_byte
-      b1 = read_byte
-      b2 = read_byte
-      b3 = read_byte
-      (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
+      n = @port.read(4)
+      n ? n.unpack('l')[0] : nil
     end
     
     def write_byte(b)
@@ -272,15 +274,11 @@ module PL0Common
     end
     
     def write_short(n)
-      write_byte((n >> 8) & 0xff)
-      write_byte(n & 0xff)
+      @port.write([n].pack('s'))
     end
 
     def write_int(n)
-      write_byte((n >> 24) & 0xff)
-      write_byte((n >> 16) & 0xff)
-      write_byte((n >> 8) & 0xff)
-      write_byte(n & 0xff)
+      @port.write([n].pack('l'))
     end
   end
 
@@ -305,7 +303,7 @@ module PL0Common
       case code
       when LIT, ICT, JMP, JPC
         factory.create(code, toks[1].to_i)
-      when LOD, STO, CAL, RET
+      when LOD, LDA, STO, CAL, RET
         factory.create(code, Address.new(toks[1].to_i, toks[2].to_i))
       when OPR
         factory.create(code, OperationType.s_to_operation_type(toks[1]))

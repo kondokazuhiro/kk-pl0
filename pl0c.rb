@@ -8,10 +8,11 @@ BNF
 <program> ::= <block> '.'
 <block> ::= [<var_decl> | <const_decl> | <func_decl>]* <statement>
 <const_decl> ::= 'const' <ident> '=' <number> [',' <ident> '=' <number>]* ';'
-<var_decl> ::= 'var' <ident> [',' <ident>]* ';'
+<var_decl> ::= 'var' <var_decl_elem> [',' <var_decl_elem>]* ';'
+<var_decl_elem> ::= <ident> | <ident> '[' <number> ']' | <ident> '[' <ident> ']'
 <func_decl> ::= 'function' <ident> '(' [<ident> [',' <ident>]*] ')' <block> ';'
 <statement> ::= #empty
-              | <ident> ':=' <expr>
+              | <ident> ['[' <expr> ']'] ':=' <expr>
               | 'begin' <statement> [';' <statement>]* 'end'
               | 'if' <condition> 'then' <statement> ['else' <statement>]
               | 'while' <condition> 'do' <statement>
@@ -26,6 +27,7 @@ BNF
 <term> ::= <factor> [['*' | '/'] <factor>]*
 <factor> ::= <ident>
            | <number>
+           | <ident> '[' <expr> ']'
            | <ident> '(' [<expr> [',' <expr>]*] ')' 
            | '(' <expr> ')'
 =end
@@ -86,6 +88,8 @@ module TokenKind
   K_DIV = KindEntry.new('/')
   K_L_PAREN = KindEntry.new('(')
   K_R_PAREN = KindEntry.new(')')
+  K_L_BRACKET = KindEntry.new('[')
+  K_R_BRACKET = KindEntry.new(']')
 end
 
 class Token
@@ -203,10 +207,11 @@ class Scanner
 end
 
 class SymbolDef
-  VAR = :var
+  VAR_SCALAR = :var_scalar
   CONST = :const
   FUNC = :func
-  PARAM = :param
+  VAR_ARRAY = :array
+  VAR_REF = :ref
 
   attr_reader :kind, :name, :values
     
@@ -216,8 +221,12 @@ class SymbolDef
     @values = values
   end
   
-  def is_assignable
-    @kind == VAR || @kind == PARAM
+  def is_variable
+    @kind == VAR_SCALAR || @kind == VAR_ARRAY || @kind == VAR_REF
+  end
+  
+  def is_array_or_ref
+    @kind == VAR_ARRAY || @kind == VAR_REF
   end
 end
 
@@ -268,10 +277,16 @@ class SymbolManager
     raise error("Undefined symbol: #{name}")
   end
   
-  def enter_var(name)
+  def enter_var_scalar(name)
     values = {:addr => Address.new(@level, @offset)}
-    @tables.last[name] = SymbolDef.new(SymbolDef::VAR, name, values)
+    @tables.last[name] = SymbolDef.new(SymbolDef::VAR_SCALAR, name, values)
     @offset += 1
+  end
+
+  def enter_array(name, size)
+    values = {:addr => Address.new(@level, @offset), :size => size}
+    @tables.last[name] = SymbolDef.new(SymbolDef::VAR_ARRAY, name, values)
+    @offset += size
   end
   
   def enter_const(name, value)
@@ -288,9 +303,9 @@ class SymbolManager
     func_sym.values[:addr].modify_offset(inst_index)
   end
   
-  def enter_func_param(func_sym, name)
+  def enter_func_param(func_sym, name, kind)
     values = {:addr => Address.new(@level, 0)}
-    param_sym = SymbolDef.new(SymbolDef::PARAM, name, values)
+    param_sym = SymbolDef.new(kind, name, values)
     @tables.last[name] = param_sym
     func_sym.values[:params].push(param_sym)
   end
@@ -363,6 +378,7 @@ class Compiler
     @sym_mgr = SymbolManager.new(@scanner)
     @generator = CodeGenerator.new(@sym_mgr)
     @token = nil
+    @back_token = nil
   end
   
   def compile
@@ -390,7 +406,17 @@ class Compiler
   end
   
   def next_token
-    @token = @scanner.next_token
+    if @back_token
+      @token = @back_token
+      @back_token = nil
+    else
+      @token = @scanner.next_token
+    end
+    @token
+  end
+  
+  def pushback_token(token)
+    @back_token = token
   end
 
   def expect_token(token, expected_kind)
@@ -454,8 +480,29 @@ class Compiler
   def parse_var_decl
     while true
       expect_token(@token, K_IDENT)
-      @sym_mgr.enter_var(@token.value)
+      var_name = @token.value
       next_token
+      if @token.kind == K_L_BRACKET
+        # array variable
+        next_token
+        expect_token_in(@token, [K_NUMBER, K_IDENT])
+        if (@token.kind == K_NUMBER)
+          size = @token.value
+        else
+          sym = @sym_mgr.get(@token.value)
+          if sym.kind != SymbolDef::CONST
+            raise error("size '#{sym.name}' of array '#{var_name}' is not constant")
+          end
+          size = sym.values[:value];
+        end
+        if size <= 0
+          raise error("size #{size} of array '#{var_name}' is invalid.")
+        end
+        expect_and_next_token(next_token, K_R_BRACKET)
+        @sym_mgr.enter_array(var_name, size)
+      else
+        @sym_mgr.enter_var_scalar(var_name)
+      end
       break if @token.kind != K_COMMA
       next_token
     end
@@ -469,8 +516,15 @@ class Compiler
     @sym_mgr.block_begin
     if @token.kind == K_IDENT
       while true
-        @sym_mgr.enter_func_param(func_sym, @token.value)
+        param_name = @token.value
         next_token
+        if @token.kind == K_L_BRACKET
+          kind = SymbolDef::VAR_REF
+          expect_and_next_token(next_token, K_R_BRACKET)
+        else
+          kind = SymbolDef::VAR_SCALAR
+        end
+        @sym_mgr.enter_func_param(func_sym, param_name, kind)
         break if @token.kind != K_COMMA
         expect_token(next_token, K_IDENT)
       end
@@ -487,12 +541,32 @@ class Compiler
       # pass through
     when K_IDENT
       sym = @sym_mgr.get(@token.value)
-      unless sym.is_assignable
+      unless sym.is_variable
         raise error("Symbol #{sym.name} is not assignable.")
       end
-      expect_and_next_token(next_token, K_ASSIGN)
+      if sym.kind == SymbolDef::VAR_REF
+        @generator.gen_addr(InstructionCode::LOD, sym.values[:addr])
+      else
+        @generator.gen_addr(InstructionCode::LDA, sym.values[:addr])
+      end
+      next_token
+      if @token.kind == K_L_BRACKET
+        if !sym.is_array_or_ref
+          raise error("Symbol #{sym.name} is not an array.")
+        end
+        next_token
+        parse_expr
+        expect_and_next_token(@token, K_R_BRACKET)
+        @generator.gen_opr(OperationType::ADD)
+      else
+        if sym.is_array_or_ref
+          raise error("Symbol #{sym.name} is an array.")
+        end
+      end
+      expect_and_next_token(@token, K_ASSIGN)
       parse_expr
-      @generator.gen_addr(InstructionCode::STO, sym.values[:addr])
+      # @generator.gen_addr(InstructionCode::STO, sym.values[:addr])
+      @generator.gen_opr(OperationType::SID)
     when K_BEGIN
       next_token
       parse_statement(func_sym)
@@ -611,7 +685,7 @@ class Compiler
   def parse_factor
     case @token.kind
     when K_IDENT
-      parse_factor_ident
+      parse_factor_ident(false)
     when K_NUMBER
       @generator.gen_value(InstructionCode::LIT, @token.value)
       next_token
@@ -624,10 +698,10 @@ class Compiler
     end
   end
   
-  def parse_factor_ident
+  def parse_factor_ident(allow_ref)
     sym = @sym_mgr.get(@token.value)
     case sym.kind
-    when SymbolDef::VAR, SymbolDef::PARAM
+    when SymbolDef::VAR_SCALAR
       @generator.gen_addr(InstructionCode::LOD, sym.values[:addr])
       next_token
     when SymbolDef::CONST
@@ -636,6 +710,31 @@ class Compiler
     when SymbolDef::FUNC
       next_token
       parse_func_call(sym)
+    when SymbolDef::VAR_ARRAY, SymbolDef::VAR_REF
+      next_token
+      if @token.kind == K_L_BRACKET
+        # array element
+        if sym.kind == SymbolDef::VAR_REF
+          @generator.gen_addr(InstructionCode::LOD, sym.values[:addr])
+        else
+          @generator.gen_addr(InstructionCode::LDA, sym.values[:addr])
+        end
+        next_token
+        parse_expr
+        expect_and_next_token(@token, K_R_BRACKET)
+        @generator.gen_opr(OperationType::ADD)
+        @generator.gen_opr(OperationType::LID)
+      else
+        # array reference
+        if !allow_ref
+          raise error("Reference of array #{sym.name} is not allowed here.")
+        end
+        if sym.kind == SymbolDef::VAR_REF
+          @generator.gen_addr(InstructionCode::LOD, sym.values[:addr])
+        else
+          @generator.gen_addr(InstructionCode::LDA, sym.values[:addr])
+        end
+      end
     end
   end
   
@@ -644,7 +743,16 @@ class Compiler
     num_params = 0
     if @token.kind != K_R_PAREN
       while true
-        parse_expr
+        token1 = @token
+        token2 = next_token
+        pushback_token(token2)
+        @token = token1
+        if token1.kind == K_IDENT &&
+            (token2.kind == K_COMMA || token2.kind == K_R_PAREN)
+          parse_factor_ident(true)
+        else
+          parse_expr
+        end
         num_params += 1
         break if @token.kind != K_COMMA
         next_token

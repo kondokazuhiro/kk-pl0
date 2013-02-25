@@ -1,0 +1,63 @@
+var void;
+
+function quick_sort(ary[], len)
+  function sort(l, r)
+    var i, j, x, w;
+  begin
+    i := l;
+    j := r;
+    x := ary[(l + r) / 2];
+    repeat begin
+      while ary[i] < x do
+        i := i + 1;
+      while x < ary[j] do
+        j := j - 1;
+      if i <= j then
+      begin
+        w := ary[i];
+        ary[i] := ary[j];
+        ary[j] := w;
+        i := i + 1;
+        j := j - 1;
+      end;
+    end until i > j;
+    if l < j then
+      void := sort(l, j);
+    if i < r then
+      void := sort(i, r);
+  end;
+begin
+  void := sort(0, len - 1);
+end;
+
+function print_array(ary[], len)
+  var i;
+begin
+  i := 0;
+  while i < len do
+  begin
+    write ary[i];
+    i := i + 1;
+  end;
+  writeln;
+end;
+
+const LEN = 10;
+var array[LEN];
+
+begin
+  array[0] := 8;
+  array[1] := 89;
+  array[2] := 38;
+  array[3] := 56;
+  array[4] := 21;
+  array[5] := 4;
+  array[6] := 31;
+  array[7] := 77;
+  array[8] := 32;
+  array[9] := 2;
+
+  void := print_array(array, LEN);
+  void := quick_sort(array, LEN);
+  void := print_array(array, LEN);
+end.
