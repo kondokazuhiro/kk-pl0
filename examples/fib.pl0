@@ -1,0 +1,18 @@
+function fib(n)
+begin
+  if n <= 2 then return 1;
+  return fib(n-1) + fib(n-2)
+end;
+
+var n;
+
+begin
+  n := 1;
+
+  while n <= 10 do
+    begin
+      write fib(n);
+      writeln;
+      n := n + 1
+    end;
+end.

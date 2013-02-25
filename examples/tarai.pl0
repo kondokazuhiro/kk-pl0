@@ -1,0 +1,12 @@
+function tarai(x, y, z)
+begin
+  if x <= y then return y;
+  return tarai(tarai(x-1, y, z),
+               tarai(y-1, z, x),
+               tarai(z-1, x, y))
+end;
+
+begin
+  write tarai(8, 4, 0);
+  writeln
+end.

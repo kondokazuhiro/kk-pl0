@@ -1,0 +1,78 @@
+function multiply(x,y)
+  var a,b,c;
+begin
+  a := x;
+  b := y;
+  c := 0;
+  while b > 0 do
+    begin
+      if odd b then c := c + a;
+      a := 2*a;
+      b := b/2
+    end;
+  return c    
+end ;
+
+function divide(x,y)
+  var r,q,w;
+begin
+  r := x;
+  q := 0;
+  w := y;
+  while w <= r do w := 2*w;
+  while w > y do
+    begin
+      q := 2*q;
+      w := w/2;
+      if w <= r then
+        begin
+          r := r-w;
+          q := q+1
+        end
+    end;
+  return q
+end;
+
+function gcd(x,y)
+begin 
+  if x <> y then
+    begin
+      if x < y then return gcd(x,y-x);
+      return gcd(x-y,y)
+    end;
+  return x
+end;
+
+function gcd2(x,y)
+begin
+  while x <> y do
+    begin
+      if x < y then y := y-x;
+      if y < x then x := x-y;
+    end;
+  return x
+end;
+
+const m = 7, n = 85;
+var x,y;
+
+begin
+  x := m;
+  y := n;
+  write x;
+  write y;
+  write multiply(x,y);
+  writeln;
+
+  x := 84;
+  y := 36; 
+  write x;
+  write y;
+  write gcd(x,y);
+  write gcd2(x,y);
+  writeln;
+
+  write divide(x,y);
+  write divide(x,gcd(x,y));
+  writeln
+end.
