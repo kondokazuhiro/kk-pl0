@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'stringio'
-require 'pl0c'
-require 'pl0vm'
+require_relative 'pl0c'
+require_relative 'pl0vm'
 
 class TesPL0C < Test::Unit::TestCase
   

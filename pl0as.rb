@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'pl0common'
+require_relative 'pl0common'
 
 class AssemblerDriver
   include PL0Common

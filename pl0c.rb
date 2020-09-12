@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require 'optparse'
-require 'pl0common'
+require_relative 'pl0common'
 
 =begin
 PL/0 Compiler
