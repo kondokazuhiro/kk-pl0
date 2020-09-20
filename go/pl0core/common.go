@@ -121,6 +121,7 @@ func (oi *OperationInstruction) String() string {
 // ReadInstructions reads instructions.
 func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 	var instructions []Instruction
+	byteOrder := binary.BigEndian
 
 	for {
 		var code byte
@@ -128,7 +129,7 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 		var valInt16 int16
 		var valInt32 int32
 
-		err := binary.Read(reader, binary.LittleEndian, &code)
+		err := binary.Read(reader, byteOrder, &code)
 		if err == io.EOF {
 			break
 		}
@@ -136,11 +137,10 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 			return nil, err
 		}
 
-		// TODO: LittleEndian to BigEndian.
 		switch code {
 		case InstructLIT:
 			// read int32
-			err = binary.Read(reader, binary.LittleEndian, &valInt32)
+			err = binary.Read(reader, byteOrder, &valInt32)
 			if err != nil {
 				return nil, err
 			}
@@ -149,7 +149,7 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 
 		case InstructICT, InstructJMP, InstructJPC:
 			// read int16
-			err = binary.Read(reader, binary.LittleEndian, &valInt16)
+			err = binary.Read(reader, byteOrder, &valInt16)
 			if err != nil {
 				return nil, err
 			}
@@ -159,12 +159,12 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 		case InstructLOD, InstructLDA, InstructSTO, InstructCAL, InstructRET:
 			// read int16, int16
 			addr := new(Address)
-			err = binary.Read(reader, binary.LittleEndian, &valInt16)
+			err = binary.Read(reader, byteOrder, &valInt16)
 			if err != nil {
 				return nil, err
 			}
 			addr.Level = int(valInt16)
-			err = binary.Read(reader, binary.LittleEndian, &valInt16)
+			err = binary.Read(reader, byteOrder, &valInt16)
 			if err != nil {
 				return nil, err
 			}
@@ -174,7 +174,7 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 
 		case InstructOPR:
 			// read byte
-			err = binary.Read(reader, binary.LittleEndian, &valByte)
+			err = binary.Read(reader, byteOrder, &valByte)
 			if err != nil {
 				return nil, err
 			}
