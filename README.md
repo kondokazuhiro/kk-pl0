@@ -49,6 +49,8 @@ prog.pl0 をコンパイルするには、コマンドプロンプトから次�
 
     $ ruby pl0vm.rb prog.pl0vm
 
+pl0vm.rb は、ruby による PL/0 VM ですが、他に [Go言語によるPL/0 VM](go/)
+もあります。
 
 ### アセンブリコードの出力とアセンブル
 
@@ -66,14 +68,12 @@ prog.pl0 をコンパイルするには、コマンドプロンプトから次�
 エラーがなければプログラムファイル prog.pl0vm が生成されます。
 
 
-### 確認済みの動作環境
+### 動作環境(参考)
 
 次の OS と Ruby のバージョンで動作確認しました。
 
-* Linux(CentOS5.7): Ruby 1.8.5
-* Windows XP/Vista/7: Ruby 1.8.7, 1.9.2
-* Mac OS X Lion: Ruby 1.8.7
-
+* macOS Catalina: Ruby 2.6.3
+* Windows 10: Ruby 2.7.1
 
 ## オリジナル PL/0 と書籍『コンパイラ』の PL/0'
 

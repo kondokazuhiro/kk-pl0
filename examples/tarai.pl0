@@ -7,6 +7,6 @@ begin
 end;
 
 begin
-  write tarai(8, 4, 0);
+  write tarai(12, 6, 0);
   writeln
 end.

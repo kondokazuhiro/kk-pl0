@@ -16,3 +16,7 @@ tmp
 .yardoc
 _yardoc
 doc/
+
+# PL/0 artifacts
+*.pl0as
+*.pl0vm
