@@ -1,7 +1,7 @@
-# Go言語で実装した kk-PL/0 VM
+# kk-PL/0 VM (Go版)
 
 kk-PL/0 の VM(仮想マシン)をGo言語で実装したものです。
-ruby版(pl0vm.rb)よりも実行速度が高速です。
+ruby版(pl0vm.rb)よりも高速です。
 
 ## Go版PL/0 VMのビルド
 
