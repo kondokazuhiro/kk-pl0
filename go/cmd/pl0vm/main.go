@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"os"
 
-	pl0 "kkpl0/pl0core"
+	"kkpl0/pl0core"
 )
 
-func readInstructions(file string) ([]pl0.Instruction, error) {
+func readInstructions(file string) ([]pl0core.Instruction, error) {
 	rf, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
 	defer rf.Close()
 
-	return pl0.ReadInstructions(bufio.NewReader(rf))
+	return pl0core.ReadInstructions(bufio.NewReader(rf))
 }
 
 func run(file string, debug bool) error {
@@ -30,7 +30,7 @@ func run(file string, debug bool) error {
 		}
 	}
 
-	vm := pl0.NewPL0VM()
+	vm := pl0core.NewPL0VM()
 	vm.Debug = debug
 	return vm.Run(instructions)
 }
