@@ -30,7 +30,7 @@ func run(file string, debug bool) error {
 		}
 	}
 
-	vm := pl0.NewPL0VM(os.Stdout)
+	vm := pl0.NewPL0VM()
 	vm.Debug = debug
 	return vm.Run(instructions)
 }

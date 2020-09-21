@@ -182,7 +182,7 @@ func ReadInstructions(reader io.Reader) ([]Instruction, error) {
 			instructions = append(instructions, inst)
 
 		default:
-			return nil, fmt.Errorf("Unknown instruction code %d", code)
+			return nil, fmt.Errorf("Unknown instruction code: %d", code)
 		}
 	}
 	return instructions, nil

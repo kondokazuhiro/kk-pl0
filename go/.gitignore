@@ -2,4 +2,7 @@ go.sum
 pl0vm
 *.exe
 
+coverage.out
+coverage.html
+
 .vscode/

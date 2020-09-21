@@ -3,6 +3,7 @@ package pl0core
 import (
 	"fmt"
 	"io"
+	"os"
 )
 
 const (
@@ -24,10 +25,10 @@ type PL0VM struct {
 }
 
 // NewPL0VM creates a PL0VM instance.
-func NewPL0VM(output io.Writer) *PL0VM {
+func NewPL0VM() *PL0VM {
 	vm := new(PL0VM)
 	vm.Debug = false
-	vm.Output = output
+	vm.Output = os.Stdout
 	vm.top = 0
 	vm.pc = 0
 	return vm
@@ -61,8 +62,8 @@ func (vm *PL0VM) Run(instructions []Instruction) error {
 }
 
 func (vm *PL0VM) printState(inst Instruction) {
-	fmt.Printf("%s\n", inst)
-	fmt.Printf("  pc=%d\n", vm.pc)
+	fmt.Fprintf(vm.Output, "%s\n", inst)
+	fmt.Fprintf(vm.Output, "  pc=%d\n", vm.pc)
 }
 
 func (vm *PL0VM) executeInstruction(inst Instruction) error {
@@ -74,6 +75,7 @@ func (vm *PL0VM) executeInstruction(inst Instruction) error {
 		ai := inst.(*AddrInstruction)
 		vm.push(vm.display[ai.Level] + ai.Offset)
 	case InstructSTO:
+		// OPR,SID is used instead of STO in pl0c.rb.
 		ai := inst.(*AddrInstruction)
 		vm.stack[vm.display[ai.Level]+ai.Offset] = vm.pop()
 	case InstructLIT:
@@ -116,7 +118,7 @@ func (vm *PL0VM) executeInstruction(inst Instruction) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Unknown Instruction Code: %d", inst.GetCode())
+		return fmt.Errorf("Unknown instruction code: %d", inst.GetCode())
 	}
 
 	return nil
