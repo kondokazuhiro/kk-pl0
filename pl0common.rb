@@ -261,12 +261,12 @@ module PL0Common
 
     def read_short
       n = @port.read(2)
-      n ? n.unpack('s')[0] : nil
+      n ? n.unpack('s>')[0] : nil
     end
 
     def read_int
       n = @port.read(4)
-      n ? n.unpack('l')[0] : nil
+      n ? n.unpack('l>')[0] : nil
     end
     
     def write_byte(b)
@@ -274,11 +274,11 @@ module PL0Common
     end
     
     def write_short(n)
-      @port.write([n].pack('s'))
+      @port.write([n].pack('s>'))
     end
 
     def write_int(n)
-      @port.write([n].pack('l'))
+      @port.write([n].pack('l>'))
     end
   end
 
